@@ -48,6 +48,7 @@ const App = () => (
               <Route path="/agreement/:id/edit" element={<AgreementForm />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/register-data" element={<RegisterData />} />
+              <Route path="/cadastros" element={<Navigate to="/register-data" replace />} />
               <Route path="/kanban" element={<Kanban />} />
             </Route>
             
