@@ -19,6 +19,7 @@ import Documents from "./pages/Documents";
 import Kanban from "./pages/Kanban";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import RegisterData from "./pages/RegisterData";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/agreement/new" element={<AgreementForm />} />
               <Route path="/agreement/:id/edit" element={<AgreementForm />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/register-data" element={<RegisterData />} />
               <Route path="/kanban" element={<Kanban />} />
             </Route>
             
