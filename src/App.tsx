@@ -13,6 +13,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Contracts from "./pages/Contracts";
 import ContractForm from "./pages/ContractForm";
+import Agreements from "./pages/Agreements";
+import AgreementForm from "./pages/AgreementForm";
 import Documents from "./pages/Documents";
 import Kanban from "./pages/Kanban";
 import NotFound from "./pages/NotFound";
@@ -40,6 +42,9 @@ const App = () => (
               <Route path="/contracts" element={<Contracts />} />
               <Route path="/contract/new" element={<ContractForm />} />
               <Route path="/contract/:id/edit" element={<ContractForm />} />
+              <Route path="/agreements" element={<Agreements />} />
+              <Route path="/agreement/new" element={<AgreementForm />} />
+              <Route path="/agreement/:id/edit" element={<AgreementForm />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/kanban" element={<Kanban />} />
             </Route>
