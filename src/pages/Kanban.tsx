@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
@@ -291,7 +290,7 @@ const Kanban = () => {
                 <SelectValue placeholder="Todos os Departamentos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os Departamentos</SelectItem>
+                <SelectItem value="all">Todos os Departamentos</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept} value={dept}>
                     {dept}

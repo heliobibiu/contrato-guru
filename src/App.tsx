@@ -16,6 +16,7 @@ import ContractForm from "./pages/ContractForm";
 import Documents from "./pages/Documents";
 import Kanban from "./pages/Kanban";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,9 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
+            {/* Root route */}
+            <Route path="/" element={<Index />} />
+            
             {/* Protected routes */}
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -39,9 +43,6 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/kanban" element={<Kanban />} />
             </Route>
-            
-            {/* Redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
