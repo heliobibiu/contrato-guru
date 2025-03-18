@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,19 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				"contrato-guru": {
+					50: "#f0f4ff",
+					100: "#dae3ff",
+					200: "#bccbff",
+					300: "#93a9fe",
+					400: "#6a7df9",
+					500: "#4a54f0",
+					600: "#3537e2",
+					700: "#2c2ac6",
+					800: "#2626a0",
+					900: "#24267d",
+					950: "#18184d"
 				}
 			},
 			borderRadius: {
