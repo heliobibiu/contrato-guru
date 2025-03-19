@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -152,6 +151,14 @@ export default function AgreementForm() {
         ...data,
         data_inicio: dateToString(data.data_inicio),
         data_termino: dateToString(data.data_termino),
+        numero_convenio: data.numero_convenio,
+        participante_origem: data.participante_origem,
+        participante_destino: data.participante_destino,
+        fiscal_id: data.fiscal_id,
+        gestor_id: data.gestor_id,
+        setor_id: data.setor_id,
+        valor_total: data.valor_total,
+        status: data.status
       };
       
       if (import.meta.env.VITE_SUPABASE_URL) {

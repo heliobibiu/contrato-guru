@@ -9,7 +9,428 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      aditivos: {
+        Row: {
+          contrato_id: string
+          created_at: string | null
+          data_assinatura: string
+          id: string
+          justificativa: string
+          nova_prazo: string | null
+          numero_aditivo: string
+          tipo_aditivo: string
+          updated_at: string | null
+          valor_aditivo: number
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string | null
+          data_assinatura: string
+          id?: string
+          justificativa: string
+          nova_prazo?: string | null
+          numero_aditivo: string
+          tipo_aditivo: string
+          updated_at?: string | null
+          valor_aditivo: number
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string | null
+          data_assinatura?: string
+          id?: string
+          justificativa?: string
+          nova_prazo?: string | null
+          numero_aditivo?: string
+          tipo_aditivo?: string
+          updated_at?: string | null
+          valor_aditivo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aditivos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apostilas: {
+        Row: {
+          contrato_id: string
+          created_at: string | null
+          data_registro: string
+          descricao: string
+          id: string
+          numero_apostila: string
+          updated_at: string | null
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string | null
+          data_registro: string
+          descricao: string
+          id?: string
+          numero_apostila: string
+          updated_at?: string | null
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string | null
+          data_registro?: string
+          descricao?: string
+          id?: string
+          numero_apostila?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apostilas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          created_at: string | null
+          data_inicio_execucao: string
+          data_termino_execucao: string
+          fiscal_id: string
+          fornecedor: string
+          gestor_id: string
+          id: string
+          numero_contrato: string
+          setor_id: string
+          status: string
+          updated_at: string | null
+          valor_original: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_inicio_execucao: string
+          data_termino_execucao: string
+          fiscal_id: string
+          fornecedor: string
+          gestor_id: string
+          id?: string
+          numero_contrato: string
+          setor_id: string
+          status: string
+          updated_at?: string | null
+          valor_original: number
+        }
+        Update: {
+          created_at?: string | null
+          data_inicio_execucao?: string
+          data_termino_execucao?: string
+          fiscal_id?: string
+          fornecedor?: string
+          gestor_id?: string
+          id?: string
+          numero_contrato?: string
+          setor_id?: string
+          status?: string
+          updated_at?: string | null
+          valor_original?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_fiscal_id_fkey"
+            columns: ["fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "gestores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convenios: {
+        Row: {
+          created_at: string | null
+          data_inicio: string
+          data_termino: string
+          fiscal_id: string
+          gestor_id: string
+          id: string
+          numero_convenio: string
+          participante_destino: string
+          participante_origem: string
+          setor_id: string
+          status: string
+          updated_at: string | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_inicio: string
+          data_termino: string
+          fiscal_id: string
+          gestor_id: string
+          id?: string
+          numero_convenio: string
+          participante_destino: string
+          participante_origem: string
+          setor_id: string
+          status: string
+          updated_at?: string | null
+          valor_total: number
+        }
+        Update: {
+          created_at?: string | null
+          data_inicio?: string
+          data_termino?: string
+          fiscal_id?: string
+          gestor_id?: string
+          id?: string
+          numero_convenio?: string
+          participante_destino?: string
+          participante_origem?: string
+          setor_id?: string
+          status?: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenios_fiscal_id_fkey"
+            columns: ["fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convenios_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "gestores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convenios_setor_id_fkey"
+            columns: ["setor_id"]
+            isOneToOne: false
+            referencedRelation: "setores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscais: {
+        Row: {
+          created_at: string | null
+          especialidade: string
+          id: string
+          matricula: string
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          especialidade: string
+          id?: string
+          matricula: string
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          especialidade?: string
+          id?: string
+          matricula?: string
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscais_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gestores: {
+        Row: {
+          cargo: string
+          created_at: string | null
+          id: string
+          matricula: string
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          cargo: string
+          created_at?: string | null
+          id?: string
+          matricula: string
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          cargo?: string
+          created_at?: string | null
+          id?: string
+          matricula?: string
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestores_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicoes: {
+        Row: {
+          created_at: string | null
+          data_medicao: string
+          id: string
+          ordem_id: string
+          status_aprovacao: string
+          updated_at: string | null
+          valor_medicao: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_medicao: string
+          id?: string
+          ordem_id: string
+          status_aprovacao: string
+          updated_at?: string | null
+          valor_medicao: number
+        }
+        Update: {
+          created_at?: string | null
+          data_medicao?: string
+          id?: string
+          ordem_id?: string
+          status_aprovacao?: string
+          updated_at?: string | null
+          valor_medicao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_de_servico: {
+        Row: {
+          contrato_id: string
+          created_at: string | null
+          data_emissao: string
+          descricao: string
+          id: string
+          numero_ordem: string
+          updated_at: string | null
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string | null
+          data_emissao: string
+          descricao: string
+          id?: string
+          numero_ordem: string
+          updated_at?: string | null
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string | null
+          data_emissao?: string
+          descricao?: string
+          id?: string
+          numero_ordem?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_de_servico_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setores: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          nome_setor: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          nome_setor: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          nome_setor?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      usuarios: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          nome: string
+          senha: string
+          tipo_usuario: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          nome: string
+          senha: string
+          tipo_usuario: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          senha?: string
+          tipo_usuario?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

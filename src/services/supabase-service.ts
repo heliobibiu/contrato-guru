@@ -1,6 +1,4 @@
-
-import { supabase } from '@/lib/supabase';
-import { Database } from '@/types/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // Type for common response
 type ApiResponse<T> = {
@@ -8,9 +6,12 @@ type ApiResponse<T> = {
   error: Error | null;
 };
 
+// Generic types for database operations
+type GenericObject = Record<string, any>;
+
 // Service for Setores
 export const setorService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['setores']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('setores')
@@ -23,7 +24,7 @@ export const setorService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['setores']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('setores')
@@ -37,7 +38,7 @@ export const setorService = {
     }
   },
   
-  async create(setor: Database['public']['Tables']['setores']['Insert']): Promise<ApiResponse<Database['public']['Tables']['setores']['Row']>> {
+  async create(setor: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('setores')
@@ -51,7 +52,7 @@ export const setorService = {
     }
   },
   
-  async update(id: string, setor: Database['public']['Tables']['setores']['Update']): Promise<ApiResponse<Database['public']['Tables']['setores']['Row']>> {
+  async update(id: string, setor: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('setores')
@@ -82,7 +83,7 @@ export const setorService = {
 
 // Service for Fiscais
 export const fiscalService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['fiscais']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
@@ -94,7 +95,7 @@ export const fiscalService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['fiscais']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
@@ -108,7 +109,7 @@ export const fiscalService = {
     }
   },
   
-  async create(fiscal: Database['public']['Tables']['fiscais']['Insert']): Promise<ApiResponse<Database['public']['Tables']['fiscais']['Row']>> {
+  async create(fiscal: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
@@ -122,7 +123,7 @@ export const fiscalService = {
     }
   },
   
-  async update(id: string, fiscal: Database['public']['Tables']['fiscais']['Update']): Promise<ApiResponse<Database['public']['Tables']['fiscais']['Row']>> {
+  async update(id: string, fiscal: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
@@ -153,7 +154,7 @@ export const fiscalService = {
 
 // Service for Gestores
 export const gestorService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['gestores']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
@@ -165,7 +166,7 @@ export const gestorService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['gestores']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
@@ -179,7 +180,7 @@ export const gestorService = {
     }
   },
   
-  async create(gestor: Database['public']['Tables']['gestores']['Insert']): Promise<ApiResponse<Database['public']['Tables']['gestores']['Row']>> {
+  async create(gestor: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
@@ -193,7 +194,7 @@ export const gestorService = {
     }
   },
   
-  async update(id: string, gestor: Database['public']['Tables']['gestores']['Update']): Promise<ApiResponse<Database['public']['Tables']['gestores']['Row']>> {
+  async update(id: string, gestor: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
@@ -224,7 +225,7 @@ export const gestorService = {
 
 // Service for Contratos
 export const contratoService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['contratos']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
@@ -242,7 +243,7 @@ export const contratoService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['contratos']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
@@ -261,7 +262,7 @@ export const contratoService = {
     }
   },
   
-  async create(contrato: Database['public']['Tables']['contratos']['Insert']): Promise<ApiResponse<Database['public']['Tables']['contratos']['Row']>> {
+  async create(contrato: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
@@ -275,7 +276,7 @@ export const contratoService = {
     }
   },
   
-  async update(id: string, contrato: Database['public']['Tables']['contratos']['Update']): Promise<ApiResponse<Database['public']['Tables']['contratos']['Row']>> {
+  async update(id: string, contrato: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
@@ -306,7 +307,7 @@ export const contratoService = {
 
 // Service for Convenios
 export const convenioService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['convenios']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
@@ -324,7 +325,7 @@ export const convenioService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['convenios']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
@@ -343,7 +344,7 @@ export const convenioService = {
     }
   },
   
-  async create(convenio: Database['public']['Tables']['convenios']['Insert']): Promise<ApiResponse<Database['public']['Tables']['convenios']['Row']>> {
+  async create(convenio: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
@@ -357,7 +358,7 @@ export const convenioService = {
     }
   },
   
-  async update(id: string, convenio: Database['public']['Tables']['convenios']['Update']): Promise<ApiResponse<Database['public']['Tables']['convenios']['Row']>> {
+  async update(id: string, convenio: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
@@ -388,7 +389,7 @@ export const convenioService = {
 
 // Service for Ordens de Servico
 export const ordemServicoService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['ordens_de_servico']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
@@ -401,7 +402,7 @@ export const ordemServicoService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['ordens_de_servico']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
@@ -415,7 +416,7 @@ export const ordemServicoService = {
     }
   },
   
-  async create(ordem: Database['public']['Tables']['ordens_de_servico']['Insert']): Promise<ApiResponse<Database['public']['Tables']['ordens_de_servico']['Row']>> {
+  async create(ordem: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
@@ -429,7 +430,7 @@ export const ordemServicoService = {
     }
   },
   
-  async update(id: string, ordem: Database['public']['Tables']['ordens_de_servico']['Update']): Promise<ApiResponse<Database['public']['Tables']['ordens_de_servico']['Row']>> {
+  async update(id: string, ordem: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
@@ -460,7 +461,7 @@ export const ordemServicoService = {
 
 // Service for Medicoes
 export const medicaoService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['medicoes']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
@@ -479,7 +480,7 @@ export const medicaoService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['medicoes']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
@@ -499,7 +500,7 @@ export const medicaoService = {
     }
   },
   
-  async create(medicao: Database['public']['Tables']['medicoes']['Insert']): Promise<ApiResponse<Database['public']['Tables']['medicoes']['Row']>> {
+  async create(medicao: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
@@ -513,7 +514,7 @@ export const medicaoService = {
     }
   },
   
-  async update(id: string, medicao: Database['public']['Tables']['medicoes']['Update']): Promise<ApiResponse<Database['public']['Tables']['medicoes']['Row']>> {
+  async update(id: string, medicao: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
@@ -544,7 +545,7 @@ export const medicaoService = {
 
 // Service for Aditivos
 export const aditivoService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['aditivos']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
@@ -557,7 +558,7 @@ export const aditivoService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['aditivos']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
@@ -571,7 +572,7 @@ export const aditivoService = {
     }
   },
   
-  async create(aditivo: Database['public']['Tables']['aditivos']['Insert']): Promise<ApiResponse<Database['public']['Tables']['aditivos']['Row']>> {
+  async create(aditivo: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
@@ -585,7 +586,7 @@ export const aditivoService = {
     }
   },
   
-  async update(id: string, aditivo: Database['public']['Tables']['aditivos']['Update']): Promise<ApiResponse<Database['public']['Tables']['aditivos']['Row']>> {
+  async update(id: string, aditivo: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
@@ -616,7 +617,7 @@ export const aditivoService = {
 
 // Service for Apostilas
 export const apostilaService = {
-  async getAll(): Promise<ApiResponse<Database['public']['Tables']['apostilas']['Row'][]>> {
+  async getAll(): Promise<ApiResponse<any[]>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')
@@ -629,7 +630,7 @@ export const apostilaService = {
     }
   },
   
-  async getById(id: string): Promise<ApiResponse<Database['public']['Tables']['apostilas']['Row']>> {
+  async getById(id: string): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')
@@ -643,7 +644,7 @@ export const apostilaService = {
     }
   },
   
-  async create(apostila: Database['public']['Tables']['apostilas']['Insert']): Promise<ApiResponse<Database['public']['Tables']['apostilas']['Row']>> {
+  async create(apostila: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')
@@ -657,7 +658,7 @@ export const apostilaService = {
     }
   },
   
-  async update(id: string, apostila: Database['public']['Tables']['apostilas']['Update']): Promise<ApiResponse<Database['public']['Tables']['apostilas']['Row']>> {
+  async update(id: string, apostila: GenericObject): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')

@@ -156,6 +156,12 @@ const ContractForm = () => {
         data_inicio_execucao: dateToString(data.data_inicio_execucao),
         data_termino_execucao: dateToString(data.data_termino_execucao),
         valor_original: parseFloat(data.valor_original),
+        numero_contrato: data.numero_contrato,
+        fornecedor: data.fornecedor,
+        fiscal_id: data.fiscal_id,
+        gestor_id: data.gestor_id,
+        setor_id: data.setor_id,
+        status: data.status
       };
       
       if (import.meta.env.VITE_SUPABASE_URL) {

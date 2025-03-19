@@ -1,46 +1,30 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // Function to check if a table exists
 export const tableExists = async (tableName: string): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('information_schema.tables')
-    .select('table_name')
-    .eq('table_schema', 'public')
-    .eq('table_name', tableName);
-  
-  return !error && data && data.length > 0;
+  try {
+    const { data, error } = await supabase
+      .rpc('check_table_exists', { table_name: tableName });
+    
+    return !error && data === true;
+  } catch (error) {
+    console.error(`Error checking if table ${tableName} exists:`, error);
+    return false;
+  }
 };
 
 // Create Supabase tables if they don't exist
 export const initializeTables = async () => {
   try {
-    // Check if the usuarios table exists
-    const usuariosExists = await tableExists('usuarios');
-    if (!usuariosExists) {
-      await supabase.rpc('create_usuarios_table');
+    // Use direct SQL execution instead of trying to create tables programmatically
+    // This approach avoids type issues
+    const { error } = await supabase.rpc('initialize_database_tables');
+    
+    if (error) {
+      throw error;
     }
-
-    // Check if other tables exist and create them if needed
-    const tablesData = [
-      { name: 'setores', createFunction: 'create_setores_table' },
-      { name: 'fiscais', createFunction: 'create_fiscais_table' },
-      { name: 'gestores', createFunction: 'create_gestores_table' },
-      { name: 'contratos', createFunction: 'create_contratos_table' },
-      { name: 'convenios', createFunction: 'create_convenios_table' },
-      { name: 'ordens_de_servico', createFunction: 'create_ordens_de_servico_table' },
-      { name: 'medicoes', createFunction: 'create_medicoes_table' },
-      { name: 'aditivos', createFunction: 'create_aditivos_table' },
-      { name: 'apostilas', createFunction: 'create_apostilas_table' }
-    ];
-
-    for (const table of tablesData) {
-      const exists = await tableExists(table.name);
-      if (!exists) {
-        await supabase.rpc(table.createFunction);
-      }
-    }
-
+    
     console.log('Database tables initialized successfully');
     return true;
   } catch (error) {
@@ -52,8 +36,13 @@ export const initializeTables = async () => {
 // Create policies for role-based access control
 export const setupRLSPolicies = async () => {
   try {
-    // Setup RLS policies for all tables
-    await supabase.rpc('setup_rls_policies');
+    // Use a stored procedure to setup RLS policies
+    const { error } = await supabase.rpc('setup_rls_policies');
+    
+    if (error) {
+      throw error;
+    }
+    
     console.log('RLS policies configured successfully');
     return true;
   } catch (error) {
@@ -65,19 +54,17 @@ export const setupRLSPolicies = async () => {
 // Create initial admin user
 export const createInitialAdminUser = async (email: string, password: string) => {
   try {
-    // Check if admin user exists
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('tipo_usuario', 'admin')
-      .limit(1);
+    // Check if admin user exists - use a safer method that doesn't rely on specific table types
+    const { data: userExists, error: checkError } = await supabase.rpc(
+      'check_admin_exists'
+    );
     
-    if (error) {
-      throw error;
+    if (checkError) {
+      throw checkError;
     }
     
     // If no admin user exists, create one
-    if (!data || data.length === 0) {
+    if (!userExists) {
       // Create user in Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -95,14 +82,12 @@ export const createInitialAdminUser = async (email: string, password: string) =>
       }
       
       if (authData.user) {
-        // Add to usuarios table
-        await supabase.from('usuarios').insert([{
-          id: authData.user.id,
-          nome: 'Administrador',
-          email,
-          senha: '',
-          tipo_usuario: 'admin'
-        }]);
+        // Add to usuarios table using RPC to avoid type issues
+        await supabase.rpc('create_admin_user', {
+          user_id: authData.user.id,
+          user_email: email,
+          user_name: 'Administrador'
+        });
         
         console.log('Initial admin user created successfully');
       }
