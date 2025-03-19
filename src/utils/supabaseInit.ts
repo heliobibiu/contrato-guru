@@ -1,11 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Function to check if a table exists
+// Function to check if a table exists using RPC
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
+    // Use a type assertion here to handle the type issue
     const { data, error } = await supabase
-      .rpc('check_table_exists', { table_name: tableName });
+      .rpc('check_table_exists', { table_name: tableName } as any);
     
     return !error && data === true;
   } catch (error) {
@@ -19,7 +20,7 @@ export const initializeTables = async () => {
   try {
     // Use direct SQL execution instead of trying to create tables programmatically
     // This approach avoids type issues
-    const { error } = await supabase.rpc('initialize_database_tables');
+    const { error } = await supabase.rpc('initialize_database_tables' as any);
     
     if (error) {
       throw error;
@@ -37,7 +38,7 @@ export const initializeTables = async () => {
 export const setupRLSPolicies = async () => {
   try {
     // Use a stored procedure to setup RLS policies
-    const { error } = await supabase.rpc('setup_rls_policies');
+    const { error } = await supabase.rpc('setup_rls_policies' as any);
     
     if (error) {
       throw error;
@@ -56,7 +57,7 @@ export const createInitialAdminUser = async (email: string, password: string) =>
   try {
     // Check if admin user exists - use a safer method that doesn't rely on specific table types
     const { data: userExists, error: checkError } = await supabase.rpc(
-      'check_admin_exists'
+      'check_admin_exists' as any
     );
     
     if (checkError) {
@@ -83,7 +84,7 @@ export const createInitialAdminUser = async (email: string, password: string) =>
       
       if (authData.user) {
         // Add to usuarios table using RPC to avoid type issues
-        await supabase.rpc('create_admin_user', {
+        await supabase.rpc('create_admin_user' as any, {
           user_id: authData.user.id,
           user_email: email,
           user_name: 'Administrador'

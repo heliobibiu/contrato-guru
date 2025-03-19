@@ -23,8 +23,8 @@ export const convertDatesToStrings = <T extends Record<string, any>>(
   const result = { ...obj };
   dateFields.forEach(field => {
     const value = result[field];
-    if (value instanceof Date) {
-      result[field] = dateToString(value) as any;
+    if (value && Object.prototype.toString.call(value) === '[object Date]') {
+      result[field] = dateToString(value as Date) as any;
     }
   });
   return result;

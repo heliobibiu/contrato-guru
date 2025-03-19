@@ -1,4 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 // Type for common response
 type ApiResponse<T> = {
@@ -6,8 +8,16 @@ type ApiResponse<T> = {
   error: Error | null;
 };
 
-// Generic types for database operations
-type GenericObject = Record<string, any>;
+// We'll define table types based on the schema rather than using GenericObject
+type SetorInsert = Database['public']['Tables']['setores']['Insert'];
+type FiscalInsert = Database['public']['Tables']['fiscais']['Insert'];
+type GestorInsert = Database['public']['Tables']['gestores']['Insert'];
+type ContratoInsert = Database['public']['Tables']['contratos']['Insert'];
+type ConvenioInsert = Database['public']['Tables']['convenios']['Insert'];
+type OrdemServicoInsert = Database['public']['Tables']['ordens_de_servico']['Insert'];
+type MedicaoInsert = Database['public']['Tables']['medicoes']['Insert'];
+type AditivoInsert = Database['public']['Tables']['aditivos']['Insert'];
+type ApostilaInsert = Database['public']['Tables']['apostilas']['Insert'];
 
 // Service for Setores
 export const setorService = {
@@ -38,11 +48,11 @@ export const setorService = {
     }
   },
   
-  async create(setor: GenericObject): Promise<ApiResponse<any>> {
+  async create(setor: SetorInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('setores')
-        .insert(setor)
+        .insert(setor as SetorInsert)
         .select()
         .single();
       
@@ -52,11 +62,11 @@ export const setorService = {
     }
   },
   
-  async update(id: string, setor: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, setor: Partial<SetorInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('setores')
-        .update(setor)
+        .update(setor as Partial<SetorInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -109,11 +119,11 @@ export const fiscalService = {
     }
   },
   
-  async create(fiscal: GenericObject): Promise<ApiResponse<any>> {
+  async create(fiscal: FiscalInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
-        .insert(fiscal)
+        .insert(fiscal as FiscalInsert)
         .select()
         .single();
       
@@ -123,11 +133,11 @@ export const fiscalService = {
     }
   },
   
-  async update(id: string, fiscal: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, fiscal: Partial<FiscalInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('fiscais')
-        .update(fiscal)
+        .update(fiscal as Partial<FiscalInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -180,11 +190,11 @@ export const gestorService = {
     }
   },
   
-  async create(gestor: GenericObject): Promise<ApiResponse<any>> {
+  async create(gestor: GestorInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
-        .insert(gestor)
+        .insert(gestor as GestorInsert)
         .select()
         .single();
       
@@ -194,11 +204,11 @@ export const gestorService = {
     }
   },
   
-  async update(id: string, gestor: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, gestor: Partial<GestorInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('gestores')
-        .update(gestor)
+        .update(gestor as Partial<GestorInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -262,11 +272,11 @@ export const contratoService = {
     }
   },
   
-  async create(contrato: GenericObject): Promise<ApiResponse<any>> {
+  async create(contrato: ContratoInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
-        .insert(contrato)
+        .insert(contrato as ContratoInsert)
         .select()
         .single();
       
@@ -276,11 +286,11 @@ export const contratoService = {
     }
   },
   
-  async update(id: string, contrato: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, contrato: Partial<ContratoInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('contratos')
-        .update(contrato)
+        .update(contrato as Partial<ContratoInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -344,11 +354,11 @@ export const convenioService = {
     }
   },
   
-  async create(convenio: GenericObject): Promise<ApiResponse<any>> {
+  async create(convenio: ConvenioInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
-        .insert(convenio)
+        .insert(convenio as ConvenioInsert)
         .select()
         .single();
       
@@ -358,11 +368,11 @@ export const convenioService = {
     }
   },
   
-  async update(id: string, convenio: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, convenio: Partial<ConvenioInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('convenios')
-        .update(convenio)
+        .update(convenio as Partial<ConvenioInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -416,11 +426,11 @@ export const ordemServicoService = {
     }
   },
   
-  async create(ordem: GenericObject): Promise<ApiResponse<any>> {
+  async create(ordem: OrdemServicoInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
-        .insert(ordem)
+        .insert(ordem as OrdemServicoInsert)
         .select()
         .single();
       
@@ -430,11 +440,11 @@ export const ordemServicoService = {
     }
   },
   
-  async update(id: string, ordem: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, ordem: Partial<OrdemServicoInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('ordens_de_servico')
-        .update(ordem)
+        .update(ordem as Partial<OrdemServicoInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -500,11 +510,11 @@ export const medicaoService = {
     }
   },
   
-  async create(medicao: GenericObject): Promise<ApiResponse<any>> {
+  async create(medicao: MedicaoInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
-        .insert(medicao)
+        .insert(medicao as MedicaoInsert)
         .select()
         .single();
       
@@ -514,11 +524,11 @@ export const medicaoService = {
     }
   },
   
-  async update(id: string, medicao: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, medicao: Partial<MedicaoInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('medicoes')
-        .update(medicao)
+        .update(medicao as Partial<MedicaoInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -572,11 +582,11 @@ export const aditivoService = {
     }
   },
   
-  async create(aditivo: GenericObject): Promise<ApiResponse<any>> {
+  async create(aditivo: AditivoInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
-        .insert(aditivo)
+        .insert(aditivo as AditivoInsert)
         .select()
         .single();
       
@@ -586,11 +596,11 @@ export const aditivoService = {
     }
   },
   
-  async update(id: string, aditivo: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, aditivo: Partial<AditivoInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('aditivos')
-        .update(aditivo)
+        .update(aditivo as Partial<AditivoInsert>)
         .eq('id', id)
         .select()
         .single();
@@ -644,11 +654,11 @@ export const apostilaService = {
     }
   },
   
-  async create(apostila: GenericObject): Promise<ApiResponse<any>> {
+  async create(apostila: ApostilaInsert): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')
-        .insert(apostila)
+        .insert(apostila as ApostilaInsert)
         .select()
         .single();
       
@@ -658,11 +668,11 @@ export const apostilaService = {
     }
   },
   
-  async update(id: string, apostila: GenericObject): Promise<ApiResponse<any>> {
+  async update(id: string, apostila: Partial<ApostilaInsert>): Promise<ApiResponse<any>> {
     try {
       const { data, error } = await supabase
         .from('apostilas')
-        .update(apostila)
+        .update(apostila as Partial<ApostilaInsert>)
         .eq('id', id)
         .select()
         .single();
