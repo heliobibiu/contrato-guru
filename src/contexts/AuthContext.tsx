@@ -53,7 +53,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const isSupabaseConfigured = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // Since we have the Supabase credentials, we can consider it configured
+  const isSupabaseConfigured = true;
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -88,6 +89,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const { data: userData, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (userData && !error) {
+            const loggedInUser = {
+              id: userData.id,
+              name: userData.nome,
+              email: userData.email,
+              role: mapRoleFromDatabase(userData.tipo_usuario),
+            };
+            setUser(loggedInUser);
+            localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          localStorage.removeItem('contratoGuruUser');
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [isSupabaseConfigured]);
 
   // Map database role to application role
@@ -170,21 +202,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       if (isSupabaseConfigured) {
-        // Check if user already exists
-        const { data: existingUsers } = await supabase
-          .from('usuarios')
-          .select('email')
-          .eq('email', email);
-
-        if (existingUsers && existingUsers.length > 0) {
-          toast.error('Este e-mail já está em uso!');
-          throw new Error('E-mail já existe');
-        }
-
         // Register with Supabase Auth
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              nome: name
+            }
+          }
         });
 
         if (error) {

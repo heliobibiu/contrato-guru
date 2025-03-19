@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,31 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
+import { initializeSupabase } from "@/utils/supabaseInit";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize Supabase on first load
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await initializeSupabase();
+      } catch (error) {
+        console.error("Error initializing Supabase:", error);
+        toast.error("Erro ao inicializar o banco de dados");
+      } finally {
+        setInitializing(false);
+      }
+    };
+    
+    init();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +53,17 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Inicializando o banco de dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">

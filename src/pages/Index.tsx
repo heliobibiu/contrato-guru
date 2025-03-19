@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const isSupabaseConfigured = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // We now have the Supabase credentials directly in the code
+  const isSupabaseConfigured = true;
 
   useEffect(() => {
     const checkSession = async () => {
