@@ -14,3 +14,17 @@ export const stringToDate = (dateString: string | null): Date | null => {
   if (!dateString) return null;
   return new Date(dateString);
 };
+
+// Convert all date fields in an object from Date to string format
+export const convertDatesToStrings = <T extends Record<string, any>>(
+  obj: T, 
+  dateFields: Array<keyof T>
+): Record<string, any> => {
+  const result = { ...obj };
+  dateFields.forEach(field => {
+    if (result[field] instanceof Date) {
+      result[field] = dateToString(result[field] as Date);
+    }
+  });
+  return result;
+};

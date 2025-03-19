@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +38,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 import { contratoService, fiscalService, gestorService, setorService } from "@/services/supabase-service";
 import { useAuthorization } from "@/contexts/AuthContext";
+import { dateToString } from "@/services/dateUtils";
 
 // Form validation schema
 const contractFormSchema = z.object({
@@ -150,9 +150,11 @@ const ContractForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Convert to Supabase schema
+      // Convert to Supabase schema with proper date formatting
       const contractData = {
         ...data,
+        data_inicio_execucao: dateToString(data.data_inicio_execucao),
+        data_termino_execucao: dateToString(data.data_termino_execucao),
         valor_original: parseFloat(data.valor_original),
       };
       

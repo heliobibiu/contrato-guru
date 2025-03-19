@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuthorization } from "@/contexts/AuthContext";
 import { convenioService, fiscalService, gestorService, setorService } from "@/services/supabase-service";
+import { dateToString } from "@/services/dateUtils";
 import {
   Form,
   FormControl,
@@ -146,24 +147,29 @@ export default function AgreementForm() {
     setIsSubmitting(true);
     
     try {
+      // Convert dates to string format for Supabase
+      const agreementData = {
+        ...data,
+        data_inicio: dateToString(data.data_inicio),
+        data_termino: dateToString(data.data_termino),
+      };
+      
       if (import.meta.env.VITE_SUPABASE_URL) {
         if (isEditMode) {
-          await convenioService.update(id as string, data);
+          await convenioService.update(id as string, agreementData);
         } else {
-          await convenioService.create(data);
+          await convenioService.create(agreementData);
         }
       } else {
         // Mock API call for development
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("Form data:", data);
+        console.log("Form data:", agreementData);
       }
       
-      toast({
-        title: isEditMode ? "Convênio atualizado" : "Convênio criado",
-        description: isEditMode 
-          ? `O convênio ${data.numero_convenio} foi atualizado com sucesso` 
-          : `O convênio foi criado com sucesso`,
-      });
+      toast.success(isEditMode 
+        ? `O convênio ${data.numero_convenio} foi atualizado com sucesso` 
+        : `O convênio foi criado com sucesso`
+      );
       
       navigate("/agreements");
     } catch (error) {
