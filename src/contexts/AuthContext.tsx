@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -21,21 +20,21 @@ interface AuthContextType {
   loading: boolean;
 }
 
-// Mock users for demonstration
-const MOCK_USERS = [
+// Mock users for demonstration - em produção, isso seria removido
+const MOCK_USERS: Array<User & { password: string }> = [
   {
     id: '1',
     name: 'Administrador',
     email: 'admin@example.com',
     password: 'admin123',
-    role: 'admin' as UserRole,
+    role: 'admin',
   },
   {
     id: '2',
     name: 'Gerente',
     email: 'gerente@example.com',
     password: 'gerente123',
-    role: 'gerencial' as UserRole,
+    role: 'gerencial',
     department: 'Contratos',
   },
   {
@@ -43,26 +42,34 @@ const MOCK_USERS = [
     name: 'Usuário',
     email: 'usuario@example.com',
     password: 'usuario123',
-    role: 'padrao' as UserRole,
+    role: 'padrao',
   },
 ];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const LOCAL_STORAGE_KEY = 'contratoGuruUser';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is stored in localStorage on initial load
-    const storedUser = localStorage.getItem('contratoGuruUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser) as User;
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar usuário do localStorage:', error);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
       // Simulate API call with timeout
@@ -73,9 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       
       if (foundUser) {
-        const { password, ...userWithoutPassword } = foundUser;
+        const { password: _, ...userWithoutPassword } = foundUser;
         setUser(userWithoutPassword);
-        localStorage.setItem('contratoGuruUser', JSON.stringify(userWithoutPassword));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userWithoutPassword));
         toast.success('Login realizado com sucesso!');
       } else {
         toast.error('Credenciais inválidas!');
@@ -89,29 +96,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if user already exists
       if (MOCK_USERS.some(u => u.email === email)) {
         toast.error('Este e-mail já está em uso!');
         throw new Error('E-mail já existe');
       }
 
-      // In a real app, you would make an API call to register the user
-      // For demo purposes, we'll just set the user
-      const newUser = {
+      const newUser: User = {
         id: (MOCK_USERS.length + 1).toString(),
         name,
         email,
-        role: 'padrao' as UserRole, // New users get default role
+        role: 'padrao',
       };
       
       setUser(newUser);
-      localStorage.setItem('contratoGuruUser', JSON.stringify(newUser));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newUser));
       toast.success('Cadastro realizado com sucesso!');
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
@@ -121,20 +124,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = (): void => {
     setUser(null);
-    localStorage.removeItem('contratoGuruUser');
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     toast.info('Logout realizado com sucesso!');
   };
 
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    login,
+    register,
+    logout,
+    loading
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
@@ -142,17 +154,14 @@ export const useAuth = () => {
   return context;
 };
 
-// Hook for role-based access control
-export const useAuthorization = (requiredRole: UserRole | UserRole[]) => {
+export const useAuthorization = (requiredRole: UserRole | UserRole[]): boolean => {
   const { user } = useAuth();
   
   if (!user) return false;
   
   const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
   
-  // Admin has access to everything
   if (user.role === 'admin') return true;
   
-  // Check if user's role is in the required roles
   return roles.includes(user.role);
 };
