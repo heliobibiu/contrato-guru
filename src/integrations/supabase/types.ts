@@ -436,7 +436,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_admin_exists: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      check_table_exists: {
+        Args: {
+          table_name: string
+        }
+        Returns: boolean
+      }
+      create_admin_user: {
+        Args: {
+          user_id: string
+          user_email: string
+          user_name: string
+        }
+        Returns: undefined
+      }
+      initialize_database_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      setup_rls_policies: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

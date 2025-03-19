@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -59,24 +58,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       if (isSupabaseConfigured) {
-        // Check Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          const { data: userData, error } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        try {
+          console.log("Verificando sessão do Supabase...");
+          // Check Supabase session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
-          if (userData && !error) {
-            setUser({
-              id: userData.id,
-              name: userData.nome,
-              email: userData.email,
-              role: mapRoleFromDatabase(userData.tipo_usuario),
-            });
+          if (sessionError) {
+            console.error("Erro ao verificar sessão:", sessionError);
+            setLoading(false);
+            return;
           }
+          
+          if (session) {
+            console.log("Sessão encontrada, buscando dados do usuário...");
+            try {
+              const { data: userData, error } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error("Erro ao buscar dados do usuário:", error);
+                setLoading(false);
+                return;
+              }
+              
+              if (userData) {
+                console.log("Dados do usuário encontrados:", userData);
+                setUser({
+                  id: userData.id,
+                  name: userData.nome,
+                  email: userData.email,
+                  role: mapRoleFromDatabase(userData.tipo_usuario),
+                });
+              } else {
+                console.log("Nenhum dado de usuário encontrado na tabela usuarios");
+              }
+            } catch (error) {
+              console.error("Exceção ao buscar dados do usuário:", error);
+            }
+          } else {
+            console.log("Nenhuma sessão ativa encontrada");
+          }
+        } catch (error) {
+          console.error("Erro ao inicializar autenticação:", error);
         }
       } else {
         // Fallback to localStorage for mock data
@@ -93,22 +119,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Evento de autenticação:", event, session ? "com sessão" : "sem sessão");
+        
         if (event === 'SIGNED_IN' && session) {
-          const { data: userData, error } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (userData && !error) {
-            const loggedInUser = {
-              id: userData.id,
-              name: userData.nome,
-              email: userData.email,
-              role: mapRoleFromDatabase(userData.tipo_usuario),
-            };
-            setUser(loggedInUser);
-            localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+          try {
+            const { data: userData, error } = await supabase
+              .from('usuarios')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error("Erro ao buscar dados do usuário após login:", error);
+              return;
+            }
+            
+            if (userData) {
+              console.log("Dados do usuário após login:", userData);
+              const loggedInUser = {
+                id: userData.id,
+                name: userData.nome,
+                email: userData.email,
+                role: mapRoleFromDatabase(userData.tipo_usuario),
+              };
+              setUser(loggedInUser);
+              localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+            } else {
+              console.log("Nenhum dado de usuário encontrado na tabela usuarios após login");
+            }
+          } catch (error) {
+            console.error("Exceção ao buscar dados do usuário após login:", error);
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
@@ -124,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Map database role to application role
   const mapRoleFromDatabase = (databaseRole: string): UserRole => {
+    console.log("Mapeando papel do banco de dados:", databaseRole);
     switch (databaseRole) {
       case 'admin':
         return 'admin';
@@ -138,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       if (isSupabaseConfigured) {
+        console.log(`Tentando login com Supabase: ${email}`);
         // Supabase authentication
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -145,32 +187,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (error) {
-          toast.error('Credenciais inválidas!');
+          console.error("Erro de login Supabase:", error);
+          toast.error(`Credenciais inválidas! Erro: ${error.message}`);
           throw error;
         }
 
         if (data.user) {
-          const { data: userData, error: userError } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-          
-          if (userError || !userData) {
-            toast.error('Erro ao buscar dados do usuário');
-            throw userError || new Error('Usuário não encontrado');
+          console.log("Autenticação bem-sucedida, buscando dados do usuário");
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('usuarios')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+            
+            if (userError) {
+              console.error("Erro ao buscar dados do usuário:", userError);
+              toast.error('Erro ao buscar dados do usuário');
+              throw userError;
+            }
+            
+            if (!userData) {
+              console.error("Usuário não encontrado na tabela usuarios");
+              toast.error('Usuário não encontrado no sistema');
+              throw new Error('Usuário não encontrado');
+            }
+
+            console.log("Dados do usuário encontrados:", userData);
+            const loggedInUser = {
+              id: userData.id,
+              name: userData.nome,
+              email: userData.email,
+              role: mapRoleFromDatabase(userData.tipo_usuario),
+            };
+
+            setUser(loggedInUser);
+            localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+            toast.success('Login realizado com sucesso!');
+          } catch (error) {
+            console.error("Exceção ao buscar dados do usuário:", error);
+            throw error;
           }
-
-          const loggedInUser = {
-            id: userData.id,
-            name: userData.nome,
-            email: userData.email,
-            role: mapRoleFromDatabase(userData.tipo_usuario),
-          };
-
-          setUser(loggedInUser);
-          localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
-          toast.success('Login realizado com sucesso!');
         }
       } else {
         // Mock authentication

@@ -9,12 +9,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 import { initializeSupabase } from "@/utils/supabaseInit";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -22,10 +25,16 @@ const Login = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        await initializeSupabase();
+        console.log("Iniciando inicialização do banco de dados...");
+        const success = await initializeSupabase();
+        console.log("Inicialização do banco de dados concluída:", success);
+        
+        if (!success) {
+          setInitError("Erro ao inicializar o banco de dados. Verifique os logs do console para mais detalhes.");
+        }
       } catch (error) {
-        console.error("Error initializing Supabase:", error);
-        toast.error("Erro ao inicializar o banco de dados");
+        console.error("Erro ao inicializar o Supabase:", error);
+        setInitError("Erro ao inicializar o banco de dados: " + (error instanceof Error ? error.message : String(error)));
       } finally {
         setInitializing(false);
       }
@@ -33,6 +42,32 @@ const Login = () => {
     
     init();
   }, []);
+
+  const handleForceLogin = async () => {
+    try {
+      setIsSubmitting(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error("Erro no login direto:", error);
+        toast.error("Erro no login direto: " + error.message);
+        return;
+      }
+      
+      if (data.user) {
+        toast.success("Login realizado com sucesso via login direto!");
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Exceção no login direto:", error);
+      toast.error("Erro inesperado: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +80,15 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
+      console.log(`Tentando login com: ${email}`);
       await login(email, password);
       navigate("/dashboard");
     } catch (error) {
-      console.error("Erro de login:", error);
+      console.error("Erro de login através do contexto Auth:", error);
+      
+      // Tente login direto com Supabase como fallback
+      toast.info("Tentando login direto com Supabase...");
+      await handleForceLogin();
     } finally {
       setIsSubmitting(false);
     }
@@ -78,6 +118,13 @@ const Login = () => {
           <p className="text-muted-foreground">Sistema de Gestão de Contratos e Convênios</p>
           <p className="text-sm text-muted-foreground">Secretaria de Infraestrutura de Alagoas</p>
         </div>
+        
+        {initError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Erro na inicialização</AlertTitle>
+            <AlertDescription>{initError}</AlertDescription>
+          </Alert>
+        )}
         
         <Card>
           <CardHeader>
