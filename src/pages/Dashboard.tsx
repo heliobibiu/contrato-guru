@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, BarChartHorizontal, Calendar, Clock, FileText, HandCoins, Handshake, TrendingUp } from "lucide-react";
+import { Calendar, Clock, FileText, HandCoins, Handshake, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart as RechartBar, Bar, PieChart, Pie, Cell } from 'recharts';
 
 // Sample data for charts
@@ -223,14 +223,14 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={contractsByMonth}>
+                <RechartBar data={contractsByMonth}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="contratos" name="Contratos" fill="#3B82F6" />
-                </BarChart>
+                </RechartBar>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -244,14 +244,14 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={contractsByMonth}>
+                <RechartBar data={contractsByMonth}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="convenios" name="Convênios" fill="#10B981" />
-                </BarChart>
+                </RechartBar>
               </ResponsiveContainer>
             </CardContent>
           </Card>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 export type UserRole = 'admin' | 'gerencial' | 'padrao';
 
@@ -20,8 +21,8 @@ interface AuthContextType {
   loading: boolean;
 }
 
-// Mock users for demonstration - em produção, isso seria removido
-const MOCK_USERS: Array<User & { password: string }> = [
+// Mock users for development when Supabase is not configured
+const MOCK_USERS = [
   {
     id: '1',
     name: 'Administrador',
@@ -53,40 +54,200 @@ const LOCAL_STORAGE_KEY = 'contratoGuruUser';
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Since we have the Supabase credentials, we can consider it configured
+  const isSupabaseConfigured = true;
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser) as User;
-        setUser(parsedUser);
+    const initializeAuth = async () => {
+      if (isSupabaseConfigured) {
+        try {
+          console.log("Verificando sessão do Supabase...");
+          // Check Supabase session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error("Erro ao verificar sessão:", sessionError);
+            setLoading(false);
+            return;
+          }
+          
+          if (session) {
+            console.log("Sessão encontrada, buscando dados do usuário...");
+            try {
+              const { data: userData, error } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error("Erro ao buscar dados do usuário:", error);
+                setLoading(false);
+                return;
+              }
+              
+              if (userData) {
+                console.log("Dados do usuário encontrados:", userData);
+                setUser({
+                  id: userData.id,
+                  name: userData.nome,
+                  email: userData.email,
+                  role: mapRoleFromDatabase(userData.tipo_usuario),
+                });
+              } else {
+                console.log("Nenhum dado de usuário encontrado na tabela usuarios");
+              }
+            } catch (error) {
+              console.error("Exceção ao buscar dados do usuário:", error);
+            }
+          } else {
+            console.log("Nenhuma sessão ativa encontrada");
+          }
+        } catch (error) {
+          console.error("Erro ao inicializar autenticação:", error);
+        }
+      } else {
+        // Fallback to localStorage for mock data
+        const storedUser = localStorage.getItem('contratoGuruUser');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
       }
-    } catch (error) {
-      console.error('Erro ao carregar usuário do localStorage:', error);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } finally {
       setLoading(false);
+    };
+
+    initializeAuth();
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        console.log("Evento de autenticação:", event, session ? "com sessão" : "sem sessão");
+        
+        if (event === 'SIGNED_IN' && session) {
+          try {
+            const { data: userData, error } = await supabase
+              .from('usuarios')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error("Erro ao buscar dados do usuário após login:", error);
+              return;
+            }
+            
+            if (userData) {
+              console.log("Dados do usuário após login:", userData);
+              const loggedInUser = {
+                id: userData.id,
+                name: userData.nome,
+                email: userData.email,
+                role: mapRoleFromDatabase(userData.tipo_usuario),
+              };
+              setUser(loggedInUser);
+              localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+            } else {
+              console.log("Nenhum dado de usuário encontrado na tabela usuarios após login");
+            }
+          } catch (error) {
+            console.error("Exceção ao buscar dados do usuário após login:", error);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          localStorage.removeItem('contratoGuruUser');
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isSupabaseConfigured]);
+
+  // Map database role to application role
+  const mapRoleFromDatabase = (databaseRole: string): UserRole => {
+    console.log("Mapeando papel do banco de dados:", databaseRole);
+    switch (databaseRole) {
+      case 'admin':
+        return 'admin';
+      case 'gerente':
+        return 'gerencial';
+      default:
+        return 'padrao';
     }
-  }, []);
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundUser = MOCK_USERS.find(
-        u => u.email === email && u.password === password
-      );
-      
-      if (foundUser) {
-        const { password: _, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userWithoutPassword));
-        toast.success('Login realizado com sucesso!');
+      if (isSupabaseConfigured) {
+        console.log(`Tentando login com Supabase: ${email}`);
+        // Supabase authentication
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          console.error("Erro de login Supabase:", error);
+          toast.error(`Credenciais inválidas! Erro: ${error.message}`);
+          throw error;
+        }
+
+        if (data.user) {
+          console.log("Autenticação bem-sucedida, buscando dados do usuário");
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('usuarios')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+            
+            if (userError) {
+              console.error("Erro ao buscar dados do usuário:", userError);
+              toast.error('Erro ao buscar dados do usuário');
+              throw userError;
+            }
+            
+            if (!userData) {
+              console.error("Usuário não encontrado na tabela usuarios");
+              toast.error('Usuário não encontrado no sistema');
+              throw new Error('Usuário não encontrado');
+            }
+
+            console.log("Dados do usuário encontrados:", userData);
+            const loggedInUser = {
+              id: userData.id,
+              name: userData.nome,
+              email: userData.email,
+              role: mapRoleFromDatabase(userData.tipo_usuario),
+            };
+
+            setUser(loggedInUser);
+            localStorage.setItem('contratoGuruUser', JSON.stringify(loggedInUser));
+            toast.success('Login realizado com sucesso!');
+          } catch (error) {
+            console.error("Exceção ao buscar dados do usuário:", error);
+            throw error;
+          }
+        }
       } else {
-        toast.error('Credenciais inválidas!');
-        throw new Error('Credenciais inválidas');
+        // Mock authentication
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const foundUser = MOCK_USERS.find(
+          u => u.email === email && u.password === password
+        );
+        
+        if (foundUser) {
+          const { password, ...userWithoutPassword } = foundUser;
+          setUser(userWithoutPassword as User);
+          localStorage.setItem('contratoGuruUser', JSON.stringify(userWithoutPassword));
+          toast.success('Login realizado com sucesso!');
+        } else {
+          toast.error('Credenciais inválidas!');
+          throw new Error('Credenciais inválidas');
+        }
       }
     } catch (error) {
       console.error('Erro ao fazer login:', error);
@@ -99,23 +260,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (MOCK_USERS.some(u => u.email === email)) {
-        toast.error('Este e-mail já está em uso!');
-        throw new Error('E-mail já existe');
-      }
+      if (isSupabaseConfigured) {
+        // Register with Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              nome: name
+            }
+          }
+        });
 
-      const newUser: User = {
-        id: (MOCK_USERS.length + 1).toString(),
-        name,
-        email,
-        role: 'padrao',
-      };
-      
-      setUser(newUser);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newUser));
-      toast.success('Cadastro realizado com sucesso!');
+        if (error) {
+          toast.error('Erro ao cadastrar usuário');
+          throw error;
+        }
+
+        if (data.user) {
+          // Add user to the usuarios table
+          const { error: insertError } = await supabase
+            .from('usuarios')
+            .insert([
+              {
+                id: data.user.id,
+                nome: name,
+                email: email,
+                senha: '',  // We don't store the actual password, Supabase Auth manages authentication
+                tipo_usuario: 'padrao',  // Default role
+              }
+            ]);
+
+          if (insertError) {
+            toast.error('Erro ao salvar dados do usuário');
+            throw insertError;
+          }
+
+          const newUser = {
+            id: data.user.id,
+            name,
+            email,
+            role: 'padrao' as UserRole,
+          };
+          
+          setUser(newUser);
+          localStorage.setItem('contratoGuruUser', JSON.stringify(newUser));
+          toast.success('Cadastro realizado com sucesso!');
+        }
+      } else {
+        // Mock register
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if user already exists
+        if (MOCK_USERS.some(u => u.email === email)) {
+          toast.error('Este e-mail já está em uso!');
+          throw new Error('E-mail já existe');
+        }
+
+        // For demo purposes, we'll just set the user
+        const newUser = {
+          id: (MOCK_USERS.length + 1).toString(),
+          name,
+          email,
+          role: 'padrao' as UserRole, // New users get default role
+        };
+        
+        setUser(newUser);
+        localStorage.setItem('contratoGuruUser', JSON.stringify(newUser));
+        toast.success('Cadastro realizado com sucesso!');
+      }
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
       throw error;
@@ -124,7 +337,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = (): void => {
+  const logout = async () => {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     toast.info('Logout realizado com sucesso!');

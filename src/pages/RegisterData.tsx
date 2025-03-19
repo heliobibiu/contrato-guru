@@ -1,14 +1,27 @@
 
 import { useState } from "react";
-import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { CalendarIcon, Building, MapPin, ClipboardList, FileText, User, Layers } from "lucide-react";
+
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -16,776 +29,831 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useAuthorization } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { 
-  CalendarIcon, 
-  Save, 
-  Building2, 
-  Users, 
-  FileText, 
-  ClipboardList, 
-  User, 
-  Briefcase 
-} from "lucide-react";
 
-// This page contains multiple registration forms for different entities
-// Each tab displays a different form based on the database schema
+// Schema for Fornecedor form
+const fornecedorSchema = z.object({
+  nome: z.string().min(1, { message: "Nome é obrigatório" }),
+  cnpj: z.string().min(14, { message: "CNPJ deve ter 14 caracteres" }).max(18),
+  contato: z.string().min(1, { message: "Contato é obrigatório" }),
+  email: z.string().email({ message: "Email inválido" }),
+  telefone: z.string().min(1, { message: "Telefone é obrigatório" }),
+  endereco: z.string().min(1, { message: "Endereço é obrigatório" }),
+});
+
+// Schema for Municipio form
+const municipioSchema = z.object({
+  nome: z.string().min(1, { message: "Nome é obrigatório" }),
+  estado: z.string().min(2, { message: "Estado é obrigatório" }).max(2),
+  codigo_ibge: z.string().optional(),
+  regiao: z.string().optional(),
+});
+
+// Schema for Ordem de Serviço form
+const ordemServicoSchema = z.object({
+  contrato_id: z.string().min(1, { message: "Contrato é obrigatório" }),
+  numero_ordem: z.string().min(1, { message: "Número da ordem é obrigatório" }),
+  data_emissao: z.date({ required_error: "Data de emissão é obrigatória" }),
+  descricao: z.string().min(1, { message: "Descrição é obrigatória" }),
+});
+
+// Schema for Processo SEI form
+const processoSeiSchema = z.object({
+  numero: z.string().min(1, { message: "Número do processo é obrigatório" }),
+  tipo: z.string().min(1, { message: "Tipo é obrigatório" }),
+  data_abertura: z.date({ required_error: "Data de abertura é obrigatória" }),
+  interessado: z.string().min(1, { message: "Interessado é obrigatório" }),
+  assunto: z.string().min(1, { message: "Assunto é obrigatório" }),
+  situacao: z.string().min(1, { message: "Situação é obrigatória" }),
+});
+
+// Schema for Fiscal form
+const fiscalSchema = z.object({
+  usuario_id: z.string().min(1, { message: "Usuário é obrigatório" }),
+  matricula: z.string().min(1, { message: "Matrícula é obrigatória" }),
+  especialidade: z.string().min(1, { message: "Especialidade é obrigatória" }),
+});
+
+// Schema for Setor form
+const setorSchema = z.object({
+  nome_setor: z.string().min(1, { message: "Nome do setor é obrigatório" }),
+  descricao: z.string().optional(),
+});
+
+// Mock data for selects
+const contratos = [
+  { id: "1", numero: "CT-001/2023", fornecedor: "Empresa A" },
+  { id: "2", numero: "CT-002/2023", fornecedor: "Empresa B" },
+];
+
+const usuarios = [
+  { id: "1", nome: "João Silva", email: "joao@example.com" },
+  { id: "2", nome: "Maria Santos", email: "maria@example.com" },
+  { id: "3", nome: "Pedro Oliveira", email: "pedro@example.com" },
+];
+
+const tiposProcesso = [
+  "Licitação",
+  "Dispensa",
+  "Inexigibilidade",
+  "Administrativo",
+  "Pagamento",
+];
+
+const situacoesProcesso = [
+  "Em Andamento",
+  "Concluído",
+  "Suspenso",
+  "Arquivado",
+  "Cancelado",
+];
 
 const RegisterData = () => {
   const [activeTab, setActiveTab] = useState("fornecedores");
-
-  // Form states
-  const [fornecedor, setFornecedor] = useState({
-    numero_contrato: "",
-    fornecedor: "",
-    fiscal_id: "",
-    gestor_id: "",
-    setor_id: "",
-    data_inicio_execucao: new Date(),
-    data_termino_execucao: new Date(),
-    valor_original: "",
-    status: "ativo"
+  const canEdit = useAuthorization(['admin', 'gerencial']);
+  
+  // Form for Fornecedores
+  const fornecedorForm = useForm<z.infer<typeof fornecedorSchema>>({
+    resolver: zodResolver(fornecedorSchema),
+    defaultValues: {
+      nome: "",
+      cnpj: "",
+      contato: "",
+      email: "",
+      telefone: "",
+      endereco: "",
+    },
   });
-
-  const [municipio, setMunicipio] = useState({
-    nome: "",
-    estado: "AL",
-    populacao: "",
-    codigo_ibge: ""
+  
+  // Form for Municipios
+  const municipioForm = useForm<z.infer<typeof municipioSchema>>({
+    resolver: zodResolver(municipioSchema),
+    defaultValues: {
+      nome: "",
+      estado: "",
+      codigo_ibge: "",
+      regiao: "",
+    },
   });
-
-  const [ordem, setOrdem] = useState({
-    contrato_id: "",
-    numero_ordem: "",
-    data_emissao: new Date(),
-    descricao: ""
+  
+  // Form for Ordens de Serviço
+  const ordemForm = useForm<z.infer<typeof ordemServicoSchema>>({
+    resolver: zodResolver(ordemServicoSchema),
+    defaultValues: {
+      contrato_id: "",
+      numero_ordem: "",
+      descricao: "",
+    },
   });
-
-  const [processo, setProcesso] = useState({
-    numero_processo: "",
-    assunto: "",
-    data_abertura: new Date(),
-    interessado: "",
-    situacao: "Em andamento"
+  
+  // Form for Processos SEI
+  const processoForm = useForm<z.infer<typeof processoSeiSchema>>({
+    resolver: zodResolver(processoSeiSchema),
+    defaultValues: {
+      numero: "",
+      tipo: "",
+      interessado: "",
+      assunto: "",
+      situacao: "",
+    },
   });
-
-  const [fiscal, setFiscal] = useState({
-    usuario_id: "",
-    matricula: "",
-    especialidade: ""
+  
+  // Form for Fiscais
+  const fiscalForm = useForm<z.infer<typeof fiscalSchema>>({
+    resolver: zodResolver(fiscalSchema),
+    defaultValues: {
+      usuario_id: "",
+      matricula: "",
+      especialidade: "",
+    },
   });
-
-  const [setor, setSetor] = useState({
-    nome_setor: "",
-    descricao: ""
+  
+  // Form for Setores
+  const setorForm = useForm<z.infer<typeof setorSchema>>({
+    resolver: zodResolver(setorSchema),
+    defaultValues: {
+      nome_setor: "",
+      descricao: "",
+    },
   });
-
-  // Sample data for selects
-  const fiscaisList = [
-    { id: "1", nome: "Ana Oliveira" },
-    { id: "2", nome: "João Ferreira" },
-    { id: "3", nome: "Fernanda Lima" },
-  ];
-
-  const gestoresList = [
-    { id: "1", nome: "Carlos Silva" },
-    { id: "2", nome: "Mariana Santos" },
-    { id: "3", nome: "Ricardo Nunes" },
-  ];
-
-  const setoresList = [
-    { id: "1", nome: "Obras Urbanas" },
-    { id: "2", nome: "Infraestrutura" },
-    { id: "3", nome: "Saneamento" },
-  ];
-
-  const contratosList = [
-    { id: "1", numero: "CT-2023-001" },
-    { id: "2", numero: "CT-2023-002" },
-    { id: "3", numero: "CT-2023-003" },
-  ];
-
-  const usuariosList = [
-    { id: "1", nome: "Marcos Vinicius" },
-    { id: "2", nome: "Juliana Pereira" },
-    { id: "3", nome: "Roberto Alves" },
-  ];
-
-  // Handle input changes
-  const handleFornecedorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFornecedor(prev => ({ ...prev, [name]: value }));
+  
+  // Form submit handlers
+  const onFornecedorSubmit = (data: z.infer<typeof fornecedorSchema>) => {
+    console.log("Fornecedor data:", data);
+    toast.success("Fornecedor cadastrado com sucesso!");
+    fornecedorForm.reset();
   };
-
-  const handleFornecedorSelectChange = (name: string, value: string) => {
-    setFornecedor(prev => ({ ...prev, [name]: value }));
+  
+  const onMunicipioSubmit = (data: z.infer<typeof municipioSchema>) => {
+    console.log("Município data:", data);
+    toast.success("Município cadastrado com sucesso!");
+    municipioForm.reset();
   };
-
-  const handleFornecedorDateChange = (name: string, date: Date | undefined) => {
-    if (date) {
-      setFornecedor(prev => ({ ...prev, [name]: date }));
-    }
+  
+  const onOrdemSubmit = (data: z.infer<typeof ordemServicoSchema>) => {
+    console.log("Ordem de Serviço data:", data);
+    toast.success("Ordem de serviço cadastrada com sucesso!");
+    ordemForm.reset();
   };
-
-  const handleMunicipioChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setMunicipio(prev => ({ ...prev, [name]: value }));
+  
+  const onProcessoSubmit = (data: z.infer<typeof processoSeiSchema>) => {
+    console.log("Processo SEI data:", data);
+    toast.success("Processo SEI cadastrado com sucesso!");
+    processoForm.reset();
   };
-
-  const handleOrdemChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setOrdem(prev => ({ ...prev, [name]: value }));
+  
+  const onFiscalSubmit = (data: z.infer<typeof fiscalSchema>) => {
+    console.log("Fiscal data:", data);
+    toast.success("Fiscal cadastrado com sucesso!");
+    fiscalForm.reset();
   };
-
-  const handleOrdemSelectChange = (name: string, value: string) => {
-    setOrdem(prev => ({ ...prev, [name]: value }));
+  
+  const onSetorSubmit = (data: z.infer<typeof setorSchema>) => {
+    console.log("Setor data:", data);
+    toast.success("Setor cadastrado com sucesso!");
+    setorForm.reset();
   };
-
-  const handleOrdemDateChange = (name: string, date: Date | undefined) => {
-    if (date) {
-      setOrdem(prev => ({ ...prev, [name]: date }));
-    }
-  };
-
-  const handleProcessoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProcesso(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleProcessoDateChange = (name: string, date: Date | undefined) => {
-    if (date) {
-      setProcesso(prev => ({ ...prev, [name]: date }));
-    }
-  };
-
-  const handleFiscalChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFiscal(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleFiscalSelectChange = (name: string, value: string) => {
-    setFiscal(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSetorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setSetor(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Form submission handlers
-  const handleSubmitFornecedor = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Fornecedor cadastrado com sucesso");
-    console.log("Fornecedor data:", fornecedor);
-  };
-
-  const handleSubmitMunicipio = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Município cadastrado com sucesso");
-    console.log("Município data:", municipio);
-  };
-
-  const handleSubmitOrdem = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Ordem de Serviço cadastrada com sucesso");
-    console.log("Ordem data:", ordem);
-  };
-
-  const handleSubmitProcesso = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Processo SEI cadastrado com sucesso");
-    console.log("Processo data:", processo);
-  };
-
-  const handleSubmitFiscal = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Fiscal cadastrado com sucesso");
-    console.log("Fiscal data:", fiscal);
-  };
-
-  const handleSubmitSetor = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Setor cadastrado com sucesso");
-    console.log("Setor data:", setor);
-  };
-
+  
   return (
     <div className="space-y-6">
       <PageHeader
         title="Cadastros"
-        description="Gerencie os cadastros do sistema"
+        description="Cadastro de informações básicas para o sistema"
+        breadcrumbs={[
+          { label: "Início", href: "/dashboard" },
+          { label: "Cadastros", href: "/cadastros" },
+        ]}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Cadastros do Sistema</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-8">
-              <TabsTrigger value="fornecedores" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Fornecedores</span>
-              </TabsTrigger>
-              <TabsTrigger value="municipios" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Municípios</span>
-              </TabsTrigger>
-              <TabsTrigger value="ordens" className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" />
-                <span className="hidden sm:inline">Ordens</span>
-              </TabsTrigger>
-              <TabsTrigger value="processos" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Processos SEI</span>
-              </TabsTrigger>
-              <TabsTrigger value="fiscais" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Fiscais</span>
-              </TabsTrigger>
-              <TabsTrigger value="setores" className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline">Setores</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <Separator className="mb-8" />
-            
-            {/* Fornecedores Form */}
-            <TabsContent value="fornecedores" className="space-y-6">
-              <form onSubmit={handleSubmitFornecedor} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_contrato">Número do Contrato</Label>
-                    <Input
-                      id="numero_contrato"
-                      name="numero_contrato"
-                      value={fornecedor.numero_contrato}
-                      onChange={handleFornecedorChange}
-                      placeholder="Ex: CT-2023-001"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fornecedor">Nome do Fornecedor</Label>
-                    <Input
-                      id="fornecedor"
-                      name="fornecedor"
-                      value={fornecedor.fornecedor}
-                      onChange={handleFornecedorChange}
-                      placeholder="Nome da empresa fornecedora"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fiscal_id">Fiscal Responsável</Label>
-                    <Select
-                      value={fornecedor.fiscal_id}
-                      onValueChange={(value) => handleFornecedorSelectChange("fiscal_id", value)}
-                    >
-                      <SelectTrigger id="fiscal_id">
-                        <SelectValue placeholder="Selecione um fiscal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fiscaisList.map((fiscal) => (
-                          <SelectItem key={fiscal.id} value={fiscal.id}>
-                            {fiscal.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gestor_id">Gestor Responsável</Label>
-                    <Select
-                      value={fornecedor.gestor_id}
-                      onValueChange={(value) => handleFornecedorSelectChange("gestor_id", value)}
-                    >
-                      <SelectTrigger id="gestor_id">
-                        <SelectValue placeholder="Selecione um gestor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gestoresList.map((gestor) => (
-                          <SelectItem key={gestor.id} value={gestor.id}>
-                            {gestor.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="setor_id">Setor Responsável</Label>
-                    <Select
-                      value={fornecedor.setor_id}
-                      onValueChange={(value) => handleFornecedorSelectChange("setor_id", value)}
-                    >
-                      <SelectTrigger id="setor_id">
-                        <SelectValue placeholder="Selecione um setor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {setoresList.map((setor) => (
-                          <SelectItem key={setor.id} value={setor.id}>
-                            {setor.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={fornecedor.status}
-                      onValueChange={(value) => handleFornecedorSelectChange("status", value)}
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ativo">Ativo</SelectItem>
-                        <SelectItem value="inativo">Inativo</SelectItem>
-                        <SelectItem value="suspenso">Suspenso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label>Data de Início de Execução</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !fornecedor.data_inicio_execucao && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {fornecedor.data_inicio_execucao ? (
-                            format(fornecedor.data_inicio_execucao, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={fornecedor.data_inicio_execucao}
-                          onSelect={(date) => handleFornecedorDateChange("data_inicio_execucao", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+          <TabsTrigger value="fornecedores" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            <span className="hidden sm:inline">Fornecedores</span>
+          </TabsTrigger>
+          <TabsTrigger value="municipios" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <span className="hidden sm:inline">Municípios</span>
+          </TabsTrigger>
+          <TabsTrigger value="ordens" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Ordens</span>
+          </TabsTrigger>
+          <TabsTrigger value="processos" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Processos SEI</span>
+          </TabsTrigger>
+          <TabsTrigger value="fiscais" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Fiscais</span>
+          </TabsTrigger>
+          <TabsTrigger value="setores" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            <span className="hidden sm:inline">Setores</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Fornecedores Tab */}
+        <TabsContent value="fornecedores">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...fornecedorForm}>
+                <form onSubmit={fornecedorForm.handleSubmit(onFornecedorSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Fornecedores</h2>
                   
-                  <div className="space-y-2">
-                    <Label>Data de Término de Execução</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !fornecedor.data_termino_execucao && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {fornecedor.data_termino_execucao ? (
-                            format(fornecedor.data_termino_execucao, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={fornecedor.data_termino_execucao}
-                          onSelect={(date) => handleFornecedorDateChange("data_termino_execucao", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="valor_original">Valor Original (R$)</Label>
-                    <Input
-                      id="valor_original"
-                      name="valor_original"
-                      value={fornecedor.valor_original}
-                      onChange={handleFornecedorChange}
-                      placeholder="Ex: 100000.00"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Fornecedor
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            
-            {/* Municípios Form */}
-            <TabsContent value="municipios" className="space-y-6">
-              <form onSubmit={handleSubmitMunicipio} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome do Município</Label>
-                    <Input
-                      id="nome"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={fornecedorForm.control}
                       name="nome"
-                      value={municipio.nome}
-                      onChange={handleMunicipioChange}
-                      placeholder="Ex: Maceió"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome da Empresa</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome da empresa" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={fornecedorForm.control}
+                      name="cnpj"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CNPJ</FormLabel>
+                          <FormControl>
+                            <Input placeholder="00.000.000/0000-00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={fornecedorForm.control}
+                      name="contato"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do Contato</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome do contato" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={fornecedorForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail</FormLabel>
+                          <FormControl>
+                            <Input placeholder="email@exemplo.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={fornecedorForm.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(00) 00000-0000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select
-                      value={municipio.estado}
-                      onValueChange={(value) => setMunicipio(prev => ({ ...prev, estado: value }))}
+                  
+                  <FormField
+                    control={fornecedorForm.control}
+                    name="endereco"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endereço</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Endereço completo" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
                     >
-                      <SelectTrigger id="estado">
-                        <SelectValue placeholder="Selecione o estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AL">Alagoas</SelectItem>
-                        <SelectItem value="BA">Bahia</SelectItem>
-                        <SelectItem value="CE">Ceará</SelectItem>
-                        <SelectItem value="MA">Maranhão</SelectItem>
-                        <SelectItem value="PB">Paraíba</SelectItem>
-                        <SelectItem value="PE">Pernambuco</SelectItem>
-                        <SelectItem value="PI">Piauí</SelectItem>
-                        <SelectItem value="RN">Rio Grande do Norte</SelectItem>
-                        <SelectItem value="SE">Sergipe</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      Cadastrar Fornecedor
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="populacao">População</Label>
-                    <Input
-                      id="populacao"
-                      name="populacao"
-                      value={municipio.populacao}
-                      onChange={handleMunicipioChange}
-                      placeholder="Ex: 1000000"
-                      type="number"
-                      min="0"
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Municípios Tab */}
+        <TabsContent value="municipios">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...municipioForm}>
+                <form onSubmit={municipioForm.handleSubmit(onMunicipioSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Municípios</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={municipioForm.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do Município</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome do município" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="codigo_ibge">Código IBGE</Label>
-                    <Input
-                      id="codigo_ibge"
+                    
+                    <FormField
+                      control={municipioForm.control}
+                      name="estado"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>UF</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Sigla do estado (ex: AL)" maxLength={2} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={municipioForm.control}
                       name="codigo_ibge"
-                      value={municipio.codigo_ibge}
-                      onChange={handleMunicipioChange}
-                      placeholder="Ex: 2704302"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Código IBGE</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Código IBGE" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={municipioForm.control}
+                      name="regiao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Região</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Região do estado" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Município
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            
-            {/* Ordens Form */}
-            <TabsContent value="ordens" className="space-y-6">
-              <form onSubmit={handleSubmitOrdem} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="contrato_id">Contrato</Label>
-                    <Select
-                      value={ordem.contrato_id}
-                      onValueChange={(value) => handleOrdemSelectChange("contrato_id", value)}
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
                     >
-                      <SelectTrigger id="contrato_id">
-                        <SelectValue placeholder="Selecione um contrato" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contratosList.map((contrato) => (
-                          <SelectItem key={contrato.id} value={contrato.id}>
-                            {contrato.numero}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      Cadastrar Município
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_ordem">Número da Ordem</Label>
-                    <Input
-                      id="numero_ordem"
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Ordens de Serviço Tab */}
+        <TabsContent value="ordens">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...ordemForm}>
+                <form onSubmit={ordemForm.handleSubmit(onOrdemSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Ordens de Serviço</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={ordemForm.control}
+                      name="contrato_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contrato</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um contrato" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {contratos.map((contrato) => (
+                                <SelectItem key={contrato.id} value={contrato.id}>
+                                  {contrato.numero} - {contrato.fornecedor}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={ordemForm.control}
                       name="numero_ordem"
-                      value={ordem.numero_ordem}
-                      onChange={handleOrdemChange}
-                      placeholder="Ex: OS-2023-001"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número da Ordem</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Número da ordem de serviço" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={ordemForm.control}
+                      name="data_emissao"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Data de Emissão</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Selecione uma data</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Data de Emissão</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !ordem.data_emissao && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {ordem.data_emissao ? (
-                            format(ordem.data_emissao, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={ordem.data_emissao}
-                          onSelect={(date) => handleOrdemDateChange("data_emissao", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="descricao">Descrição</Label>
-                  <Textarea
-                    id="descricao"
+                  
+                  <FormField
+                    control={ordemForm.control}
                     name="descricao"
-                    value={ordem.descricao}
-                    onChange={handleOrdemChange}
-                    placeholder="Descreva a ordem de serviço"
-                    rows={4}
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Descrição da ordem de serviço" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Ordem de Serviço
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            
-            {/* Processos SEI Form */}
-            <TabsContent value="processos" className="space-y-6">
-              <form onSubmit={handleSubmitProcesso} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_processo">Número do Processo</Label>
-                    <Input
-                      id="numero_processo"
-                      name="numero_processo"
-                      value={processo.numero_processo}
-                      onChange={handleProcessoChange}
-                      placeholder="Ex: SEI-12345/2023"
-                      required
-                    />
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
+                    >
+                      Cadastrar Ordem de Serviço
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="interessado">Interessado</Label>
-                    <Input
-                      id="interessado"
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Processos SEI Tab */}
+        <TabsContent value="processos">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...processoForm}>
+                <form onSubmit={processoForm.handleSubmit(onProcessoSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Processos SEI</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={processoForm.control}
+                      name="numero"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número do Processo</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Número do processo SEI" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={processoForm.control}
+                      name="tipo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo do Processo</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {tiposProcesso.map((tipo) => (
+                                <SelectItem key={tipo} value={tipo}>
+                                  {tipo}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={processoForm.control}
+                      name="data_abertura"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Data de Abertura</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Selecione uma data</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={processoForm.control}
                       name="interessado"
-                      value={processo.interessado}
-                      onChange={handleProcessoChange}
-                      placeholder="Nome do interessado"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interessado</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome do interessado" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={processoForm.control}
+                      name="situacao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Situação</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a situação" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {situacoesProcesso.map((situacao) => (
+                                <SelectItem key={situacao} value={situacao}>
+                                  {situacao}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Data de Abertura</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !processo.data_abertura && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {processo.data_abertura ? (
-                            format(processo.data_abertura, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={processo.data_abertura}
-                          onSelect={(date) => handleProcessoDateChange("data_abertura", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="situacao">Situação</Label>
-                    <Select
-                      value={processo.situacao}
-                      onValueChange={(value) => setProcesso(prev => ({ ...prev, situacao: value }))}
-                    >
-                      <SelectTrigger id="situacao">
-                        <SelectValue placeholder="Selecione a situação" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Em andamento">Em andamento</SelectItem>
-                        <SelectItem value="Concluído">Concluído</SelectItem>
-                        <SelectItem value="Arquivado">Arquivado</SelectItem>
-                        <SelectItem value="Suspenso">Suspenso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="assunto">Assunto</Label>
-                  <Textarea
-                    id="assunto"
+                  
+                  <FormField
+                    control={processoForm.control}
                     name="assunto"
-                    value={processo.assunto}
-                    onChange={handleProcessoChange}
-                    placeholder="Assunto do processo"
-                    rows={4}
-                    required
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assunto</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Assunto do processo" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Processo SEI
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            
-            {/* Fiscais Form */}
-            <TabsContent value="fiscais" className="space-y-6">
-              <form onSubmit={handleSubmitFiscal} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="usuario_id">Usuário</Label>
-                    <Select
-                      value={fiscal.usuario_id}
-                      onValueChange={(value) => handleFiscalSelectChange("usuario_id", value)}
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
                     >
-                      <SelectTrigger id="usuario_id">
-                        <SelectValue placeholder="Selecione um usuário" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {usuariosList.map((usuario) => (
-                          <SelectItem key={usuario.id} value={usuario.id}>
-                            {usuario.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      Cadastrar Processo SEI
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="matricula">Matrícula</Label>
-                    <Input
-                      id="matricula"
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Fiscais Tab */}
+        <TabsContent value="fiscais">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...fiscalForm}>
+                <form onSubmit={fiscalForm.handleSubmit(onFiscalSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Fiscais</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={fiscalForm.control}
+                      name="usuario_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Usuário</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um usuário" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {usuarios.map((usuario) => (
+                                <SelectItem key={usuario.id} value={usuario.id}>
+                                  {usuario.nome} ({usuario.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={fiscalForm.control}
                       name="matricula"
-                      value={fiscal.matricula}
-                      onChange={handleFiscalChange}
-                      placeholder="Ex: 12345"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Matrícula</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Número da matrícula" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="especialidade">Especialidade</Label>
-                    <Input
-                      id="especialidade"
+                    
+                    <FormField
+                      control={fiscalForm.control}
                       name="especialidade"
-                      value={fiscal.especialidade}
-                      onChange={handleFiscalChange}
-                      placeholder="Ex: Engenharia Civil"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Especialidade</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Especialidade do fiscal" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Fiscal
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            
-            {/* Setores Form */}
-            <TabsContent value="setores" className="space-y-6">
-              <form onSubmit={handleSubmitSetor} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome_setor">Nome do Setor</Label>
-                    <Input
-                      id="nome_setor"
-                      name="nome_setor"
-                      value={setor.nome_setor}
-                      onChange={handleSetorChange}
-                      placeholder="Ex: Diretoria de Obras"
-                      required
-                    />
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
+                    >
+                      Cadastrar Fiscal
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="descricao">Descrição</Label>
-                    <Textarea
-                      id="descricao"
-                      name="descricao"
-                      value={setor.descricao}
-                      onChange={handleSetorChange}
-                      placeholder="Descreva as funções do setor"
-                      rows={4}
-                      required
-                    />
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Setores Tab */}
+        <TabsContent value="setores">
+          <Card>
+            <CardContent className="pt-6">
+              <Form {...setorForm}>
+                <form onSubmit={setorForm.handleSubmit(onSetorSubmit)} className="space-y-6">
+                  <h2 className="text-xl font-bold">Cadastro de Setores</h2>
+                  
+                  <FormField
+                    control={setorForm.control}
+                    name="nome_setor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Setor</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome do setor" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={setorForm.control}
+                    name="descricao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Descrição do setor" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!canEdit}
+                      className="w-full md:w-auto"
+                    >
+                      Cadastrar Setor
+                    </Button>
                   </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit" className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Salvar Setor
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
