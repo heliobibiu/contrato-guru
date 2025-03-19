@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 // Function to check if a table exists using RPC
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
-    // Use a type assertion here to handle the type issue
-    const { data, error } = await supabase
-      .rpc('check_table_exists', { table_name: tableName } as any);
+    // Use any type to bypass TypeScript type checking for RPC calls
+    const { data, error } = await supabase.rpc(
+      'check_table_exists', 
+      { table_name: tableName } as any
+    ) as unknown as { data: boolean, error: any };
     
     return !error && data === true;
   } catch (error) {
@@ -18,9 +20,10 @@ export const tableExists = async (tableName: string): Promise<boolean> => {
 // Create Supabase tables if they don't exist
 export const initializeTables = async () => {
   try {
-    // Use direct SQL execution instead of trying to create tables programmatically
-    // This approach avoids type issues
-    const { error } = await supabase.rpc('initialize_database_tables' as any);
+    // Use stronger type assertions for RPC calls
+    const { error } = await supabase.rpc(
+      'initialize_database_tables'
+    ) as unknown as { data: any, error: any };
     
     if (error) {
       throw error;
@@ -37,8 +40,10 @@ export const initializeTables = async () => {
 // Create policies for role-based access control
 export const setupRLSPolicies = async () => {
   try {
-    // Use a stored procedure to setup RLS policies
-    const { error } = await supabase.rpc('setup_rls_policies' as any);
+    // Use stronger type assertions for RPC calls
+    const { error } = await supabase.rpc(
+      'setup_rls_policies'
+    ) as unknown as { data: any, error: any };
     
     if (error) {
       throw error;
@@ -57,8 +62,8 @@ export const createInitialAdminUser = async (email: string, password: string) =>
   try {
     // Check if admin user exists - use a safer method that doesn't rely on specific table types
     const { data: userExists, error: checkError } = await supabase.rpc(
-      'check_admin_exists' as any
-    );
+      'check_admin_exists'
+    ) as unknown as { data: boolean, error: any };
     
     if (checkError) {
       throw checkError;
@@ -84,11 +89,14 @@ export const createInitialAdminUser = async (email: string, password: string) =>
       
       if (authData.user) {
         // Add to usuarios table using RPC to avoid type issues
-        await supabase.rpc('create_admin_user' as any, {
-          user_id: authData.user.id,
-          user_email: email,
-          user_name: 'Administrador'
-        });
+        await supabase.rpc(
+          'create_admin_user',
+          {
+            user_id: authData.user.id,
+            user_email: email,
+            user_name: 'Administrador'
+          }
+        ) as unknown as { data: any, error: any };
         
         console.log('Initial admin user created successfully');
       }
