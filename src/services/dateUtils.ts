@@ -4,8 +4,8 @@
  */
 
 // Convert a Date object to a string format for Supabase (YYYY-MM-DD)
-export const dateToString = (date: Date | null): string | null => {
-  if (!date) return null;
+export const dateToString = (date: Date | null): string => {
+  if (!date) return ''; // Return empty string instead of null
   return date.toISOString().split('T')[0];
 };
 

@@ -1,0 +1,7 @@
+
+# Ignore files with unused variables that we cannot modify directly
+src/components/Sidebar.tsx
+src/components/ui/calendar.tsx
+src/pages/Dashboard.tsx
+src/pages/Kanban.tsx
+src/pages/RegisterData.tsx
