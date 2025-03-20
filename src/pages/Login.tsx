@@ -18,8 +18,15 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   // Initialize Supabase on first load
   useEffect(() => {
@@ -43,9 +50,11 @@ const Login = () => {
     init();
   }, []);
 
-  const handleForceLogin = async () => {
+  const handleDirectLogin = async () => {
     try {
       setIsSubmitting(true);
+      console.log(`Tentando login direto com: ${email}`);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -53,17 +62,21 @@ const Login = () => {
       
       if (error) {
         console.error("Erro no login direto:", error);
-        toast.error("Erro no login direto: " + error.message);
-        return;
+        toast.error(`Erro no login: ${error.message}`);
+        return false;
       }
       
       if (data.user) {
-        toast.success("Login realizado com sucesso via login direto!");
+        toast.success("Login realizado com sucesso!");
         navigate("/dashboard");
+        return true;
       }
+      
+      return false;
     } catch (error) {
       console.error("Exceção no login direto:", error);
       toast.error("Erro inesperado: " + (error instanceof Error ? error.message : String(error)));
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -86,9 +99,9 @@ const Login = () => {
     } catch (error) {
       console.error("Erro de login através do contexto Auth:", error);
       
-      // Tente login direto com Supabase como fallback
-      toast.info("Tentando login direto com Supabase...");
-      await handleForceLogin();
+      // Tente login direto como fallback
+      toast.info("Tentando login direto...");
+      await handleDirectLogin();
     } finally {
       setIsSubmitting(false);
     }
@@ -173,6 +186,15 @@ const Login = () => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Autenticando..." : "Entrar"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full"
+                onClick={handleDirectLogin}
+                disabled={isSubmitting}
+              >
+                Login Direto
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Não tem uma conta?{" "}

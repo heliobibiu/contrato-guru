@@ -4,13 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 // Function to check if a table exists using RPC
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
-    // Use forced type casting to bypass TypeScript type checking for RPC calls
-    const { data, error } = await (supabase.rpc as any)(
-      'check_table_exists', 
-      { table_name: tableName }
-    ) as unknown as { data: boolean, error: any };
+    // Usando query SQL direta em vez de RPC
+    const { data, error } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName)
+      .single();
     
-    return !error && data === true;
+    if (error) {
+      console.error(`Error checking if table ${tableName} exists:`, error);
+      return false;
+    }
+    
+    return data !== null;
   } catch (error) {
     console.error(`Error checking if table ${tableName} exists:`, error);
     return false;
@@ -20,14 +27,22 @@ export const tableExists = async (tableName: string): Promise<boolean> => {
 // Create Supabase tables if they don't exist
 export const initializeTables = async () => {
   try {
-    // Use forced type casting for RPC calls
-    const { error } = await (supabase.rpc as any)(
-      'initialize_database_tables'
-    ) as unknown as { data: any, error: any };
+    // Primeiro verificamos se a tabela usuarios existe como um teste básico
+    const usuariosExists = await tableExists('usuarios');
     
-    if (error) {
-      console.error('Error in initialize_database_tables:', error);
-      throw error;
+    if (!usuariosExists) {
+      console.log('Tables do not exist, creating them...');
+      // Use forced type casting for RPC calls
+      const { error } = await (supabase.rpc as any)(
+        'initialize_database_tables'
+      );
+      
+      if (error) {
+        console.error('Error in initialize_database_tables:', error);
+        throw error;
+      }
+    } else {
+      console.log('Tables already exist, skipping initialization');
     }
     
     console.log('Database tables initialized successfully');
@@ -44,7 +59,7 @@ export const setupRLSPolicies = async () => {
     // Use forced type casting for RPC calls
     const { error } = await (supabase.rpc as any)(
       'setup_rls_policies'
-    ) as unknown as { data: any, error: any };
+    );
     
     if (error) {
       console.error('Error in setup_rls_policies:', error);
@@ -65,7 +80,7 @@ export const createInitialAdminUser = async (email: string, password: string) =>
     // Check if admin user exists - use a safer method that doesn't rely on specific table types
     const { data: userExists, error: checkError } = await (supabase.rpc as any)(
       'check_admin_exists'
-    ) as unknown as { data: boolean, error: any };
+    );
     
     if (checkError) {
       console.error('Error in check_admin_exists:', checkError);
@@ -102,7 +117,7 @@ export const createInitialAdminUser = async (email: string, password: string) =>
             user_email: email,
             user_name: 'Administrador'
           }
-        ) as unknown as { data: any, error: any };
+        );
         
         if (rpcError) {
           console.error('Error in create_admin_user RPC:', rpcError);
