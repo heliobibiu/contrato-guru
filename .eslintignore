@@ -5,3 +5,7 @@ src/components/ui/calendar.tsx
 src/pages/Dashboard.tsx
 src/pages/Kanban.tsx
 src/pages/RegisterData.tsx
+
+# Ignore build directories
+dist/
+node_modules/

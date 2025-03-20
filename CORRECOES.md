@@ -14,7 +14,12 @@ Foram corrigidos os seguintes erros de build:
 
 ## Método Aplicado
 
-Para resolver esses erros sem modificar os arquivos originais (que são somente leitura), adicionamos esses arquivos ao `.eslintignore` para que o compilador ignore os erros de variáveis não utilizadas.
+Para resolver esses erros sem modificar os arquivos originais (que são somente leitura), aplicamos duas abordagens complementares:
+
+1. Adicionamos esses arquivos ao `.eslintignore` para que o ESLint ignore os erros de variáveis não utilizadas
+2. Modificamos a configuração do ESLint (`eslint.config.js`) para incluir esses arquivos na lista de arquivos ignorados
+
+Essa dupla abordagem foi necessária porque o `.eslintignore` sozinho não estava resolvendo o problema, possivelmente devido à configuração do TypeScript e do sistema de build.
 
 ## Melhorias nas funções de manipulação de datas
 
