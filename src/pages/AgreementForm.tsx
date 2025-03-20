@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -37,7 +36,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Agreement form validation schema
 const agreementSchema = z.object({
   numero_convenio: z.string().min(1, { message: "Número do convênio é obrigatório" }),
   participante_origem: z.string().min(1, { message: "Participante de origem é obrigatório" }),
@@ -68,7 +66,6 @@ export default function AgreementForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canEdit = useAuthorization(['admin', 'gerencial']);
   
-  // Fetch data for dropdowns
   const { data: fiscaisData } = useQuery({
     queryKey: ['fiscais'],
     queryFn: async () => {
@@ -99,7 +96,6 @@ export default function AgreementForm() {
     enabled: !!import.meta.env.VITE_SUPABASE_URL
   });
   
-  // Fetch agreement data if in edit mode
   const { data: agreementData, isLoading: agreementLoading } = useQuery({
     queryKey: ['convenio', id],
     queryFn: async () => {
@@ -125,7 +121,6 @@ export default function AgreementForm() {
     },
   });
   
-  // Update form with agreement data when available
   useEffect(() => {
     if (agreementData) {
       form.reset({
@@ -146,7 +141,6 @@ export default function AgreementForm() {
     setIsSubmitting(true);
     
     try {
-      // Convert dates to string format for Supabase
       const agreementData = {
         ...data,
         data_inicio: dateToString(data.data_inicio),
@@ -168,7 +162,6 @@ export default function AgreementForm() {
           await convenioService.create(agreementData);
         }
       } else {
-        // Mock API call for development
         await new Promise(resolve => setTimeout(resolve, 1000));
         console.log("Form data:", agreementData);
       }
@@ -187,7 +180,6 @@ export default function AgreementForm() {
     }
   };
   
-  // Mock data for development when Supabase is not configured
   const mockFiscais = [
     { id: "1", usuario: { nome: "Ana Oliveira" } },
     { id: "2", usuario: { nome: "João Ferreira" } },
@@ -206,7 +198,6 @@ export default function AgreementForm() {
     { id: "3", nome_setor: "Educação" },
   ];
   
-  // Use mock data if Supabase is not configured
   const fiscais = fiscaisData || mockFiscais;
   const gestores = gestoresData || mockGestores;
   const setores = setoresData || mockSetores;

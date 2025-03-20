@@ -38,7 +38,6 @@ import { contratoService, fiscalService, gestorService, setorService } from "@/s
 import { useAuthorization } from "@/contexts/AuthContext";
 import { dateToString } from "@/services/dateUtils";
 
-// Form validation schema
 const contractFormSchema = z.object({
   numero_contrato: z.string().min(1, { message: "Número do contrato é obrigatório" }),
   fornecedor: z.string().min(1, { message: "Fornecedor é obrigatório" }),
@@ -53,7 +52,6 @@ const contractFormSchema = z.object({
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
 
-// Status options
 const statusOptions = [
   "Em andamento",
   "Concluído",
@@ -69,7 +67,6 @@ const ContractForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canEdit = useAuthorization(['admin', 'gerencial']);
   
-  // Fetch data for dropdowns
   const { data: fiscaisData } = useQuery({
     queryKey: ['fiscais'],
     queryFn: async () => {
@@ -100,7 +97,6 @@ const ContractForm = () => {
     enabled: !!import.meta.env.VITE_SUPABASE_URL
   });
   
-  // Fetch contract data if in edit mode
   const { data: contractData, isLoading: contractLoading } = useQuery({
     queryKey: ['contrato', id],
     queryFn: async () => {
@@ -112,7 +108,6 @@ const ContractForm = () => {
     enabled: isEditMode && !!import.meta.env.VITE_SUPABASE_URL
   });
   
-  // Initialize the form with default values
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
     defaultValues: {
@@ -126,7 +121,6 @@ const ContractForm = () => {
     },
   });
   
-  // Update form with contract data when available
   useEffect(() => {
     if (contractData) {
       form.reset({
@@ -138,7 +132,6 @@ const ContractForm = () => {
     }
   }, [contractData, form]);
   
-  // Form submission handler
   const onSubmit = async (data: ContractFormValues) => {
     if (!canEdit) {
       toast.error("Você não tem permissão para editar contratos");
@@ -148,7 +141,6 @@ const ContractForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Convert to Supabase schema with proper date formatting
       const contractData = {
         ...data,
         data_inicio_execucao: dateToString(data.data_inicio_execucao),
@@ -169,7 +161,6 @@ const ContractForm = () => {
           await contratoService.create(contractData);
         }
       } else {
-        // Mock API call for development
         await new Promise(resolve => setTimeout(resolve, 1000));
         console.log("Form data:", contractData);
       }
@@ -184,7 +175,6 @@ const ContractForm = () => {
     }
   };
   
-  // Mock data for development when Supabase is not configured
   const mockFiscais = [
     { id: "1", usuario: { nome: "Ana Oliveira" } },
     { id: "2", usuario: { nome: "João Ferreira" } },
@@ -203,7 +193,6 @@ const ContractForm = () => {
     { id: "3", nome_setor: "Educação" },
   ];
   
-  // Use mock data if Supabase is not configured
   const fiscais = fiscaisData || mockFiscais;
   const gestores = gestoresData || mockGestores;
   const setores = setoresData || mockSetores;
